@@ -7,10 +7,17 @@ namespace WiziYousignClient;
 class WiziSignClient
 {
     private $apikey;
+    private $apiBaseUrl;
+    private $idfile;
 
-    public function __construct($apikey)
+    public function __construct($apikey,$mode)
     {
         $this->setApikey($apikey);
+        if(mode == 'prod'){
+            $this->apiBaseUrl = 'https://api.yousign.com/';
+        }else{
+            $this->apiBaseUrl = 'https://staging-api.yousign.com/';
+        }
     }
 
     public static function world()
@@ -26,10 +33,18 @@ class WiziSignClient
         return $this->apikey;
     }
 
+    public function getIdfile(){
+        return $this->idfile;
+    }
+
+    public function setIdfile($idfile){
+        $this->idfile = $idfile;
+    }
+
     public function api_request( $post,$action,$method) {
 
         header('Content-Type: application/json'); // Specify the type of data
-        $ch = curl_init('https://staging-api.yousign.com/'.$action); // Initialise cURL
+        $ch = curl_init($this->apiBaseUrl.$action); // Initialise cURL
         $post = json_encode($post); // Encode the data array into a JSON string
         $authorization = "Authorization: Bearer ".$this->getApikey(); // Prepare the authorisation token
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization )); // Inject the token into the header
@@ -74,7 +89,7 @@ class WiziSignClient
         $p = json_encode($post);
 
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://staging-api.yousign.com/files",
+            CURLOPT_URL => $this->apiBaseUrl."files",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -96,15 +111,15 @@ class WiziSignClient
 
         $rtab = json_decode($response,true);
 
-        $idfile = $rtab['id'];
-        return $idfile;
+        $this->idfile = $rtab['id'];
+        return $this;
 
     }
 
-    public function addMembersOnProcedure($members){
+    public function addMembersOnProcedure($members,$titresignature,$description){
         $post2 = array(
-            'name' => 'lancement de signature',
-            'description' => 'signature de test',
+            'name' => $titresignature,
+            'description' => $description,
             'members'=> $members
         );
 
@@ -113,7 +128,7 @@ class WiziSignClient
         $curl = curl_init();
 
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://staging-api.yousign.com/procedures",
+            CURLOPT_URL => $this->apiBaseUrl."procedures",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,

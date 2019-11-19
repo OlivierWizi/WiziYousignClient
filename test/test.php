@@ -2,12 +2,22 @@
 require_once __DIR__ . '/../vendor/autoload.php'; // Autoload files using Composer autoload
 use WiziYousignClient\WiziSignClient;
 
+/**
+ * ici votre clef d'api Yousign
+ */
+$testkey = 'YourYousign_API_KEY';
 
-$testkey = 'Your api key';
+/**
+ * On instancie notre client
+ */
+$client = new WiziSignClient($testkey,'dev');
 
-$client = new WiziSignClient($testkey);
-
-$idfile = $client->newProcedure('testPDFPourYS.pdf');
+/**
+ * Création d'une nouvelle signature envoie du fichier a faire signer
+ * @param filepath
+ *
+ */
+$client->newProcedure('testPDFPourYS.pdf');
 
 $members = array(
     array(
@@ -17,7 +27,7 @@ $members = array(
         'phone' => '0652233424',
         'fileObjects' => array(
             array(
-                'file' => $idfile,
+                'file' => $client->getIdfile(),
                 'page' => 1,
                 'position' => "230,499,464,589",
                 'mention' => "Read and approved",
@@ -30,7 +40,8 @@ $members = array(
     )
 );
 
-// var_dump($client->getUsers());
+/**
+ * On termine la procedure de création de signature en envoyant la liste des utilisateurs , un titre a la signature, une description à la signature
+ */
+$client->addMembersOnProcedure($members,'encore une nouvelle signature','signature généré par le client php WiziYousignClient');
 
-
-$client->addMembersOnProcedure($members);
