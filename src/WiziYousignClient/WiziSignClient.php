@@ -62,43 +62,6 @@ class WiziSignClient
     }
 
     public function newProcedure($filepath){
-        $data = file_get_contents($filepath);
-        $b64Doc = base64_encode($data);
-
-        $post = array(
-            'name' => 'test.pdf',
-            'content' => $b64Doc
-        );
-        $p = json_encode($post);
-        $rep = $this->api_request($p,'files','POST');
-
-        return $rep;
-
-        /*
-        $members = array(
-            array(
-                'firstname' => 'olivier',
-                'lastname' => 'nival',
-                'email' => 'olivier.nival@gmail.com',
-                'phone' => '0652233424',
-            )
-
-
-        );
-
-
-        $post2 = array(
-            'name' => 'lancement de signature',
-            'description' => 'signature de test',
-            'member'=> $members
-        );
-        $proc = $this->api_request($post2,'procedures','POST');
-
-        */
-
-    }
-
-    public function proc2($filepath){
         $curl = curl_init();
 
         $data = file_get_contents($filepath);
@@ -134,33 +97,11 @@ class WiziSignClient
         $rtab = json_decode($response,true);
 
         $idfile = $rtab['id'];
-var_dump($idfile);
+        return $idfile;
 
+    }
 
-
-
-        $members = array(
-            array(
-                'firstname' => 'olivier',
-                'lastname' => 'nival',
-                'email' => 'olivier.nival@gmail.com',
-                'phone' => '0652233424',
-                'fileObjects' => array(
-                    array(
-                    'file' => $idfile,
-                    'page' => 1,
-                    'position' => "230,499,464,589",
-                    'mention' => "Read and approved",
-                    "mention2" =>"Signed by John Doe"
-
-                        )
-                    )
-
-
-            )
-        );
-
-
+    public function addMembersOnProcedure($members){
         $post2 = array(
             'name' => 'lancement de signature',
             'description' => 'signature de test',
@@ -191,9 +132,6 @@ var_dump($idfile);
         $err = curl_error($curl);
 
         curl_close($curl);
-
-
-
 
         return $response;
     }
