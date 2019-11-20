@@ -8,39 +8,71 @@ class WiziSignClient
 {
     private $apikey;
     private $apiBaseUrl;
+    private $apiBaseUrlWslash;
     private $idfile;
+    private $idAdvProc;
+    private $member;
+    private $fileobject;
 
+    /**
+     * WiziSignClient constructor.
+     * @param $apikey
+     * @param $mode
+     */
     public function __construct($apikey,$mode)
     {
         $this->setApikey($apikey);
-        if(mode == 'prod'){
+        if($mode == 'prod'){
             $this->apiBaseUrl = 'https://api.yousign.com/';
+            $this->apiBaseUrlWslash = 'https://api.yousign.com';
         }else{
             $this->apiBaseUrl = 'https://staging-api.yousign.com/';
+            $this->apiBaseUrlWslash = 'https://staging-api.yousign.com';
         }
     }
 
+    /**
+     * @return string
+     */
     public static function world()
     {
         return "Client pour l'api Yousign";
     }
 
+    /**
+     * @param $apikey
+     */
     public function setApikey($apikey){
         $this->apikey = $apikey;
     }
 
+    /**
+     * @return mixed
+     */
     public function getApikey(){
         return $this->apikey;
     }
 
+    /**
+     * @return mixed
+     */
     public function getIdfile(){
         return $this->idfile;
     }
 
+    /**
+     * @param $idfile
+     */
     public function setIdfile($idfile){
         $this->idfile = $idfile;
     }
 
+    /**
+     * @param $post
+     * @param $action
+     * @param $method
+     * @return mixed|string
+     */
     public function api_request( $post,$action,$method) {
 
         header('Content-Type: application/json'); // Specify the type of data
@@ -70,12 +102,19 @@ class WiziSignClient
 
     }
 
+    /**
+     * @return mixed|string
+     */
     public function getUsers(){
         $users = $this->api_request(array(),'users','GET');
 
         return $users;
     }
 
+    /**
+     * @param $filepath
+     * @return $this
+     */
     public function newProcedure($filepath){
         $curl = curl_init();
 
@@ -116,6 +155,12 @@ class WiziSignClient
 
     }
 
+    /**
+     * @param $members
+     * @param $titresignature
+     * @param $description
+     * @return bool|string
+     */
     public function addMembersOnProcedure($members,$titresignature,$description){
         $post2 = array(
             'name' => $titresignature,
@@ -150,5 +195,364 @@ class WiziSignClient
 
         return $response;
     }
+
+    /**
+     * @param $parameters
+     * @param bool $notifmail
+     * @return bool|string
+     */
+    public function AdvancedProcedureCreate($parameters,$notifmail=false){
+        /*
+         *
+            {
+                "name": "My procedure",
+                "description": "Description of my procedure with advanced mode",
+                "start" : false
+            }
+         */
+        if($notifmail == true){
+            $conf = array(
+                    "email" => array(
+                        "member.started" => array(
+
+                            "subject" => "Hey! You are invited to sign!",
+                            "message" => "Hello <tag data-tag-type=\"string\" data-tag-name=\"recipient.firstname\"></tag> <tag data-tag-type=\"string\" data-tag-name=\"recipient.lastname\"></tag>, <br><br> You have ben invited to sign a document, please click on the following button to read it: <tag data-tag-type=\"button\" data-tag-name=\"url\" data-tag-title=\"Access to documents\">Access to documents</tag>",
+                            "to" => array("@member")
+
+                        ),
+                        "procedure.started" => array(
+
+                            "subject" => "John, created a procedure your API have.",
+                            "message" => "The content of this email is totally awesome.",
+                            "to" => array("@creator", "@members", "billing@yousign.fr")
+
+                        )
+                    )
+                )
+            ;
+
+            $parameters['config'] = $conf;
+
+        }
+
+        $curl = curl_init();
+
+        $params = json_encode($parameters);
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->apiBaseUrl."procedures",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $params,
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer ".$this->getApikey(),
+                "Content-Type: application/json"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return "cURL Error #:" . $err;
+        } else {
+            $rtab = json_decode($response,true);
+
+
+            $this->idAdvProc = $rtab['id'];
+            return $response;
+        }
+    }
+
+    /**
+     * @param $filepath
+     * @param $namefile
+     * @return bool|string
+     */
+    public function AdvancedProcedureAddFile($filepath,$namefile){
+
+        /*
+         {
+            "name": "Name of my signable file.pdf",
+            "content": "JVBERi0xLjUKJb/3ov4KNiA [...] VPRgo=",
+            "procedure": "/procedures/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+}
+         */
+
+        $data = file_get_contents($filepath);
+        $b64Doc = base64_encode($data);
+
+        $parameters = array(
+            'name' => $namefile,
+            'content' => $b64Doc,
+            'procedure' => $this->idAdvProc
+        );
+
+
+        $curl = curl_init();
+        $params = json_encode($parameters,true);
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->apiBaseUrl."files",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $params,
+                CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer ".$this->getApikey(),
+                "Content-Type: application/json"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return "cURL Error #:" . $err;
+        } else {
+            $rtab = json_decode($response,true);
+            $this->idfile = $rtab['id'];
+            return $response;
+        }
+    }
+
+    /**
+     * @param $firstname
+     * @param $lastname
+     * @param $email
+     * @param $phone
+     * @return bool|string
+     */
+    public function AdvancedProcedureAddMember($firstname,$lastname,$email,$phone){
+
+        /*
+         {
+            "firstname": "John",
+            "lastname": "Doe",
+            "email": "john.doe@yousign.fr",
+            "phone": "+33612345678",
+            "procedure": "/procedures/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+        }
+         */
+
+        $member = array(
+            "firstname" => $firstname,
+            "lastname" => $lastname,
+            "email" => $email,
+            "phone" => $phone,
+            "procedure" => $this->idAdvProc
+        );
+
+        $curl = curl_init();
+
+        $param = json_encode($member,true);
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->apiBaseUrl."members",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS =>$param,
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer ".$this->getApikey(),
+                "Content-Type: application/json"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return "cURL Error #:" . $err;
+        } else {
+            $rtab = json_decode($response,true);
+            $this->member = $rtab['id'];
+            return $response;
+        }
+    }
+
+    /**
+     * @param $position
+     * @param $page
+     * @param $mention
+     * @param $mention2
+     * @param $reason
+     * @return bool|string
+     */
+    public function AdvancedProcedureFileObject($position,$page,$mention,$mention2,$reason){
+        /*
+            {
+                "file": "/files/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+                "member": "/members/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+                "position": "230,499,464,589",
+                "page": 2,
+                "mention": "Read and approved",
+                "mention2": "Signed by John Doe",
+                "reason": "Signed by John Doe (Yousign)"
+            }
+
+         */
+        $parameter = array(
+            "file"=> $this->idfile,
+                "member"=> $this->member,
+                "position"=> $position,
+                "page"=> $page,
+                "mention"=> $mention,
+                "mention2"=> $mention2,
+                "reason"=> $reason
+        );
+
+        $param = json_encode($parameter,true);
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->apiBaseUrl."file_objects",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $param,
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer ".$this->getApikey(),
+                "Content-Type: application/json"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            echo "cURL Error #:" . $err;
+        } else {
+            $rtab = json_decode($response,true);
+            $this->fileobject = $rtab['id'];
+            return $response;
+        }
+
+    }
+
+    /**
+     * @return bool|string
+     */
+    public function AdvancedProcedurePut(){
+        /*
+            {
+               "start": true
+            }
+         */
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->apiBaseUrlWslash."".$this->idAdvProc,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "PUT",
+            CURLOPT_POSTFIELDS =>"{\n   \"start\": true\n}",
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer ".$this->getApikey(),
+                "Content-Type: application/json"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return "cURL Error #:" . $err;
+        } else {
+            return $response;
+        }
+
+    }
+
+    /**
+     * @param $filepath
+     * @param $namefile
+     * @return bool|string
+     */
+    public function AdvancedProcedureAddAttachement($filepath,$namefile){
+        /*
+            {
+                "name": "Name of my attachment.pdf",
+                "content": "JVBERi0xLjUKJb/3ov4KICA[...]VPRgo=",
+                "procedure": "/procedures/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+                "type": "attachment"
+            }
+         */
+
+        $data = file_get_contents($filepath);
+        $b64Doc = base64_encode($data);
+
+        $parameters = array(
+            'name' => $namefile,
+            'content' => $b64Doc,
+            'procedure' => $this->idAdvProc,
+            "type"=> "attachment"
+        );
+
+        $param = json_encode($parameters,true);
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->apiBaseUrl."files",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $param,
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer ".$this->getApikey(),
+                "Content-Type: application/json"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return "cURL Error #:" . $err;
+        } else {
+            return $response;
+        }
+    }
+
 
 }
