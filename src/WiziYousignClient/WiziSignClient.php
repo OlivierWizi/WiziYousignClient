@@ -199,9 +199,13 @@ class WiziSignClient
     /**
      * @param $parameters
      * @param bool $notifmail
+     * @param bool $webhook
+     * @param string $webhookMethod
+     * @param string $webhookUrl
+     * @param string $webhookHeader
      * @return bool|string
      */
-    public function AdvancedProcedureCreate($parameters,$notifmail=false){
+    public function AdvancedProcedureCreate($parameters,$notifmail=false,$webhook = false,$webhookMethod = '',$webhookUrl = '',$webhookHeader = ''){
         /*
          *
             {
@@ -210,9 +214,10 @@ class WiziSignClient
                 "start" : false
             }
          */
+        $conf = array();
         if($notifmail == true){
-            $conf = array(
-                    "email" => array(
+            $conf["email"] =
+                     array(
                         "member.started" => array(
 
                             "subject" => "Hey! You are invited to sign!",
@@ -228,11 +233,26 @@ class WiziSignClient
 
                         )
                     )
-                )
+
             ;
 
             $parameters['config'] = $conf;
 
+        }
+
+        if($webhook != false){
+            $conf["webhook"] = array(
+                "member.finished" => array(
+                    array(
+                        "url" => $webhookUrl,
+                        "method" => $webhookMethod,
+                        "headers" => array(
+                            "X-Custom-Header" => $webhookHeader
+                        )
+                    )
+                )
+            );
+            $parameters['config'] = $conf;
         }
 
         $curl = curl_init();
