@@ -205,7 +205,7 @@ class WiziSignClient
      * @param string $webhookHeader
      * @return bool|string
      */
-    public function AdvancedProcedureCreate($parameters,$notifmail=false,$webhook = false,$webhookMethod = '',$webhookUrl = '',$webhookHeader = ''){
+    public function AdvancedProcedureCreate($parameters,$webhook = false,$webhookMethod = '',$webhookUrl = '',$webhookHeader = ''){
         /*
          *
             {
@@ -215,32 +215,8 @@ class WiziSignClient
             }
          */
         $conf = array();
-        if($notifmail == true){
-            $conf["email"] =
-                     array(
-                        "member.started" => array(
 
-                            "subject" => "Hey! You are invited to sign!",
-                            "message" => "Hello <tag data-tag-type=\"string\" data-tag-name=\"recipient.firstname\"></tag> <tag data-tag-type=\"string\" data-tag-name=\"recipient.lastname\"></tag>, <br><br> You have ben invited to sign a document, please click on the following button to read it: <tag data-tag-type=\"button\" data-tag-name=\"url\" data-tag-title=\"Access to documents\">Access to documents</tag>",
-                            "to" => array("@member")
-
-                        ),
-                        "procedure.started" => array(
-
-                            "subject" => "John, created a procedure your API have.",
-                            "message" => "The content of this email is totally awesome.",
-                            "to" => array("@creator", "@members", "billing@yousign.fr")
-
-                        )
-                    )
-
-            ;
-
-            $parameters['config'] = $conf;
-
-        }
-
-        if($webhook != false){
+        if($webhook == true){
             $conf["webhook"] = array(
                 "member.finished" => array(
                     array(
@@ -257,7 +233,7 @@ class WiziSignClient
 
         $curl = curl_init();
 
-        $params = json_encode($parameters);
+        $params = json_encode($parameters,true);
 
         curl_setopt_array($curl, array(
             CURLOPT_URL => $this->apiBaseUrl."procedures",
@@ -359,13 +335,13 @@ class WiziSignClient
     public function AdvancedProcedureAddMember($firstname,$lastname,$email,$phone){
 
         /*
-         {
-            "firstname": "John",
-            "lastname": "Doe",
-            "email": "john.doe@yousign.fr",
-            "phone": "+33612345678",
-            "procedure": "/procedures/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
-        }
+             {
+                "firstname": "John",
+                "lastname": "Doe",
+                "email": "john.doe@yousign.fr",
+                "phone": "+33612345678",
+                "procedure": "/procedures/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+            }
          */
 
         $member = array(
@@ -515,6 +491,98 @@ class WiziSignClient
             return $response;
         }
 
+    }
+
+    /**
+     * @param array $members
+     * @param string $ProcName
+     * @param string $ProcDesc
+     * @param $mailsubject
+     * @param $mailMessage
+     * @param array $arrayTo
+     * @return bool|string
+     */
+    public function addMemberWhithMailNotif($members = array(),$ProcName = '',$ProcDesc = '', $mailsubject, $mailMessage, $arrayTo = array("@creator", "@members", "olivier@wizi.eu") ){
+        $curl = curl_init();
+
+        /*
+         * param 1 an array of members
+         [
+		{
+			"firstname": "John",
+			"lastname": "Doe",
+			"email": "john.doe@yousign.fr",
+			"phone": "+33612345678",
+			"fileObjects": [
+				{
+					"file": "/files/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+					"page": 2,
+					"position": "230,499,464,589",
+					"mention": "Read and approved",
+				    "mention2": "Signed by John Doe"
+				}
+			]
+		}
+	]
+         */
+        $conf = array();
+
+        $conf["email"] =
+            array(
+                "member.started" => array(
+
+                    "subject" => $mailsubject,
+                    "message" => "Hello <tag data-tag-type=\"string\" data-tag-name=\"recipient.firstname\"></tag> <tag data-tag-type=\"string\" data-tag-name=\"recipient.lastname\"></tag>, <br><br> You have ben invited to sign a document, please click on the following button to read it: <tag data-tag-type=\"button\" data-tag-name=\"url\" data-tag-title=\"Access to documents\">Access to documents</tag>",
+                    "to" => array("@member")
+
+                ),
+                "procedure.started" => array(
+
+                    "subject" => $mailsubject,
+                    "message" => $mailMessage,
+                    "to" => $arrayTo
+
+                )
+            )
+
+        ;
+
+        $body = array(
+            "name" => $ProcName,
+            "description" => $ProcDesc,
+            "members" => $members,
+            "config" => $conf
+
+        );
+
+        $param = json_encode($body,true);
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $this->apiBaseUrl."procedures",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS =>$param,
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer ".$this->getApikey(),
+                "Content-Type: application/json"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return "cURL Error #:" . $err;
+        } else {
+            return $response;
+        }
     }
 
     /**

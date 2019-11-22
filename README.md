@@ -89,7 +89,7 @@ $parameters = array(
  * @param bool $notifmail
  * @return bool|string
  */
-$client->AdvancedProcedureCreate($parameters,true);
+$client->AdvancedProcedureCreate($parameters);
 
 $filepath = 'testPDFPourYS.pdf';
 $namefile = 'pdfaadvanceproc';
@@ -142,5 +142,88 @@ $client->AdvancedProcedureFileObject($position,$page,$mention,$mention2,$reason)
  * on declenche le démarage de la signature les personnes pourront maintenant signer
  */
 $client->AdvancedProcedurePut();
+
+```
+
+<h1>Procédure Avancée avec notification email</h1>
+
+```
+
+<?php
+require_once __DIR__ . '/../vendor/autoload.php'; // Autoload files using Composer autoload
+use WiziYousignClient\WiziSignClient;
+
+/**
+ * ici votre clef d'api Yousign
+ */
+$testkey = 'YourYousign_API_KEY';
+
+/**
+ * On instancie notre client
+ */
+$client = new WiziSignClient($testkey,'dev');
+
+/**
+ * ici on ajoute le fichier à signer avec le chemin du fichier et le nom que l'on veut en sortie
+ */
+$client->AdvancedProcedureAddFile($filepath,$namefile);
+
+
+ /**
+  * Ajouter les membre avec notif mail :
+  *
+         * param 1 an array of members
+         [
+		{
+			"firstname": "John",
+			"lastname": "Doe",
+			"email": "john.doe@yousign.fr",
+			"phone": "+33612345678",
+			"fileObjects": [
+				{
+					"file": "/files/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+					"page": 2,
+					"position": "230,499,464,589",
+					"mention": "Read and approved",
+				    "mention2": "Signed by John Doe"
+				}
+			]
+		}
+	]
+  */
+
+ $members = array(
+     array(
+       "firstname" => "Olivier",
+         "lastname"=> "Nival",
+         "email" => "olivier.nival@gmail.com",
+         "phone" => "0652233424",
+         'fileObjects' => array(
+             array(
+                 "file"=> $client->getIdfile(),
+					"page"=> 2,
+					"position"=> "230,499,464,589",
+					"mention"=> "Read and approved",
+				    "mention2"=> "Signed by John Doe"
+             )
+         )
+     ),
+ );
+
+
+$mailsubject =  "Sujet du mail";
+$mailMessage =  "Message du mail ";
+
+/**
+ * jout des membres
+ */
+$client->addMemberWhithMailNotif($members,$ProcName = 'Ma signature',$ProcDesc = 'masignature description', $mailsubject, $mailMessage, $arrayTo = array("@creator", "@members", "olivier@wizi.eu") );
+
+
+/**
+ * on declenche le démarage de la signature les personnes pourront maintenant signer
+ */
+$client->AdvancedProcedurePut();
+
 
 ```
