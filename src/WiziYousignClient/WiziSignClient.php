@@ -226,6 +226,15 @@ class WiziSignClient
                             "X-Custom-Header" => $webhookHeader
                         )
                     )
+                ),
+                "member.started" => array(
+                    array(
+                        "url" => $webhookUrl,
+                        "method" => $webhookMethod,
+                        "headers" => array(
+                            "X-Custom-Header" => $webhookHeader
+                        )
+                    )
                 )
             );
             $parameters['config'] = $conf;
