@@ -210,7 +210,7 @@ Ici nous allons pouvoir demander a yousign de nous envoyer une requete vers une 
 
 page php à mettre en place permettant de recuperer la requete envoyé par yousing aux étapes de signature
 
-<h2>votredomaine.com/webhookget.php</h2>
+<h2>votredomaine.com/webhookget</h2>
 dans cette exemple simple,
 le script prendra le contenu envoyé par yousign et l'ecrira dans un fichier texte.
 Avous d'adapter votre logique en fonction de ce que vous voudrez déclencher commes traitements.
@@ -229,8 +229,10 @@ file_put_contents('./request.txt', $text.PHP_EOL, FILE_APPEND);
 
 Maintenant que nous avons ceci, voici le code php perméttant de créer une procedure avec les webhook.
 
-<h2>mondomaine.com/creersignatureavecwebhook.php</h2>
+<h2>mondomaine.com/creersignatureavecwebhook</h2>
+
 ```
+
 <?php
 
 require_once __DIR__ . '/../vendor/autoload.php'; // Autoload files using Composer autoload
@@ -316,4 +318,5 @@ $client->AdvancedProcedureFileObject($position, $page, $mention, $mention2, $rea
  * on declenche le démarage de la signature les personnes pourront maintenant signer
  */
 $client->AdvancedProcedurePut();
+
 ```
