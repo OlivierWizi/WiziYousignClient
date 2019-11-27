@@ -98,7 +98,7 @@ class WiziSignClient
             return json_decode($result);
         }
 
-         // Return the received data
+        // Return the received data
 
     }
 
@@ -305,7 +305,7 @@ class WiziSignClient
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => "POST",
             CURLOPT_POSTFIELDS => $params,
-                CURLOPT_HTTPHEADER => array(
+            CURLOPT_HTTPHEADER => array(
                 "Authorization: Bearer ".$this->getApikey(),
                 "Content-Type: application/json"
             ),
@@ -409,12 +409,12 @@ class WiziSignClient
          */
         $parameter = array(
             "file"=> $this->idfile,
-                "member"=> $this->member,
-                "position"=> $position,
-                "page"=> $page,
-                "mention"=> $mention,
-                "mention2"=> $mention2,
-                "reason"=> $reason
+            "member"=> $this->member,
+            "position"=> $position,
+            "page"=> $page,
+            "mention"=> $mention,
+            "mention2"=> $mention2,
+            "reason"=> $reason
         );
 
         $param = json_encode($parameter,true);
@@ -502,7 +502,7 @@ class WiziSignClient
      * @param array $arrayTo
      * @return bool|string
      */
-    public function addMemberWhithMailNotif($members = array(),$ProcName = '',$ProcDesc = '', $mailsubject, $mailMessage, $arrayTo = array("@creator", "@members", "olivier@wizi.eu") ){
+    public function addMemberWhithMailNotif($members = array(),$ProcName = '',$ProcDesc = '', $mailsubject, $mailMessage, $arrayTo = array("@creator", "@members") ){
         $curl = curl_init();
 
         /*
@@ -530,18 +530,18 @@ class WiziSignClient
         $conf["email"] =
             array(
                 "member.started" => array(
-
-                    "subject" => $mailsubject,
-                    "message" => "Hello <tag data-tag-type=\"string\" data-tag-name=\"recipient.firstname\"></tag> <tag data-tag-type=\"string\" data-tag-name=\"recipient.lastname\"></tag>, <br><br> You have ben invited to sign a document, please click on the following button to read it: <tag data-tag-type=\"button\" data-tag-name=\"url\" data-tag-title=\"Access to documents\">Access to documents</tag>",
-                    "to" => array("@member")
-
+                    array(
+                        "subject" => $mailsubject,
+                        "message" => "Hello",
+                        "to" => array("@member")
+                    )
                 ),
                 "procedure.started" => array(
-
-                    "subject" => $mailsubject,
-                    "message" => $mailMessage,
-                    "to" => $arrayTo
-
+                    array(
+                        "subject" => $mailsubject,
+                        "message" => $mailMessage,
+                        "to" => $arrayTo
+                    )
                 )
             )
 

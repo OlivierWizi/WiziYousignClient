@@ -145,7 +145,7 @@ $client->AdvancedProcedurePut();
 
 ```
 
-<h1>Procédure Avancée avec notification email</h1>
+<h1>Procédure Basic avec notification email venant de yousign</h1>
 
 ```
 
@@ -161,69 +161,45 @@ $testkey = 'YourYousign_API_KEY';
 /**
  * On instancie notre client
  */
-$client = new WiziSignClient($testkey,'dev');
+$client = new WiziSignClient($testkey, 'dev');
 
 /**
- * ici on ajoute le fichier à signer avec le chemin du fichier et le nom que l'on veut en sortie
+ * Création d'une nouvelle signature envoie du fichier a faire signer
+ * @param filepath
+ *
  */
-$client->AdvancedProcedureAddFile($filepath,$namefile);
+$client->newProcedure('testPDFPourYS.pdf');
 
 
- /**
-  * Ajouter les membre avec notif mail :
-  *
-         * param 1 an array of members
-         [
-		{
-			"firstname": "John",
-			"lastname": "Doe",
-			"email": "john.doe@yousign.fr",
-			"phone": "+33612345678",
-			"fileObjects": [
-				{
-					"file": "/files/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
-					"page": 2,
-					"position": "230,499,464,589",
-					"mention": "Read and approved",
-				    "mention2": "Signed by John Doe"
-				}
-			]
-		}
-	]
-  */
 
- $members = array(
-     array(
-       "firstname" => "Olivier",
-         "lastname"=> "Nival",
-         "email" => "olivier.nival@gmail.com",
-         "phone" => "0652233424",
-         'fileObjects' => array(
-             array(
-                 "file"=> $client->getIdfile(),
-					"page"=> 2,
-					"position"=> "230,499,464,589",
-					"mention"=> "Read and approved",
-				    "mention2"=> "Signed by John Doe"
-             )
-         )
-     ),
- );
+$members = array(
+    array(
+        "firstname" => "Olivier",
+        "lastname"=> "Nival",
+        "email" => "olivier.nival@gmail.com",
+        "phone" => "0652233424",
+        'fileObjects' => array(
+            array(
+                "file"=> $client->getIdfile(),
+                "page"=> 2,
+                "position"=> "230,499,464,589",
+                "mention"=> "Read and approved",
+                "mention2"=> "Signed by John Doe"
+            )
+        )
+    ),
+);
 
 
 $mailsubject =  "Sujet du mail";
-$mailMessage =  "Message du mail ";
+$mailMessage =  " Bonjour vous devez signer votre document <tag data-tag-type=\"button\" data-tag-name=\"url\" data-tag-title=\"Access to documents\">Access to documents</tag>";
 
 /**
- * jout des membres
+ * ajout des membres et démarage de la nignature 
+ * envoi du mail au personnes qui doivent signer
  */
-$client->addMemberWhithMailNotif($members,$ProcName = 'Ma signature',$ProcDesc = 'masignature description', $mailsubject, $mailMessage, $arrayTo = array("@creator", "@members", "olivier@wizi.eu") );
-
-
-/**
- * on declenche le démarage de la signature les personnes pourront maintenant signer
- */
-$client->AdvancedProcedurePut();
+$client->addMemberWhithMailNotif($members,$ProcName = 'Ma signature',
+    $ProcDesc = 'masignature description', $mailsubject, $mailMessage, $arrayTo = array("@creator", "@members", "olivier@wizi.eu") );
 
 
 ```
