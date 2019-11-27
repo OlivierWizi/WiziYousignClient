@@ -210,10 +210,13 @@ Ici nous allons pouvoir demander a yousign de nous envoyer une requete vers une 
 
 page php à mettre en place permettant de recuperer la requete envoyé par yousing aux étapes de signature
 
-<h2>votredomaine.com/webhookget</h2>
+<h1>votredomaine.com/webhookget</h1>
+<p>
 dans cette exemple simple,
 le script prendra le contenu envoyé par yousign et l'ecrira dans un fichier texte.
 Avous d'adapter votre logique en fonction de ce que vous voudrez déclencher commes traitements.
+</p>
+
 ```
 <?php
 
@@ -229,7 +232,7 @@ file_put_contents('./request.txt', $text.PHP_EOL, FILE_APPEND);
 
 Maintenant que nous avons ceci, voici le code php perméttant de créer une procedure avec les webhook.
 
-<h2>mondomaine.com/creersignatureavecwebhook</h2>
+<h1>mondomaine.com/creersignatureavecwebhook</h1>
 
 ```
 
