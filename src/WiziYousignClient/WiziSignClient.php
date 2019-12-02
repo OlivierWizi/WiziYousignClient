@@ -281,7 +281,7 @@ class WiziSignClient
      * @param $namefile
      * @return bool|string
      */
-    public function AdvancedProcedureAddFile($filepath,$namefile){
+    public function AdvancedProcedureAddFile($filepathOrFileContent,$namefile,$filecontent = false){
 
         /*
          {
@@ -291,8 +291,13 @@ class WiziSignClient
 }
          */
 
-        $data = file_get_contents($filepath);
-        $b64Doc = base64_encode($data);
+        if($filecontent == false){
+            $data = file_get_contents($filepathOrFileContent);
+            $b64Doc = base64_encode($data);
+        }else{
+            $b64Doc = base64_encode($filepathOrFileContent);
+        }
+
 
         $parameters = array(
             'name' => $namefile,
