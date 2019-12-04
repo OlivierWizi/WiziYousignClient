@@ -90,7 +90,7 @@ class WiziSignClient
     public function downloadSignedFile($fileid,$mode){
         $curl = curl_init();
         if($mode == 'binary'){
-            $urlstr =  "https://staging-api.yousign.com/files/".$fileid."/download";
+            $urlstr =  "https://staging-api.yousign.com/files/".$fileid."/download?alt=media";
         }else{
             $urlstr =  "https://staging-api.yousign.com/files/".$fileid."/download";
         }
