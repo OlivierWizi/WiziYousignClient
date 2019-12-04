@@ -82,6 +82,7 @@ class WiziSignClient
     }
 
     /**
+     * permet de recup le fichier signé sur yousign
      * @param $fileid
      * @param $mode
      * @return bool|string
