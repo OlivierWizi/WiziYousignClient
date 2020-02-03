@@ -90,14 +90,14 @@ class WiziSignClient
     public function downloadSignedFile($fileid,$mode){
         $curl = curl_init();
         if($mode == 'binary'){
-            $urlstr =  "https://staging-api.yousign.com/files/".$fileid."/download?alt=media";
+            $urlstr =  $this->apiBaseUrlWslash.$fileid."/download?alt=media";
         }else{
-            $urlstr =  "https://staging-api.yousign.com/files/".$fileid."/download";
+            $urlstr =  $this->apiBaseUrlWslash.$fileid."/download";
         }
 
 
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://staging-api.yousign.com/files/".$fileid."/download",
+            CURLOPT_URL => $urlstr,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -578,22 +578,22 @@ class WiziSignClient
         /*
          * param 1 an array of members
          [
-		{
-			"firstname": "John",
-			"lastname": "Doe",
-			"email": "john.doe@yousign.fr",
-			"phone": "+33612345678",
-			"fileObjects": [
-				{
-					"file": "/files/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
-					"page": 2,
-					"position": "230,499,464,589",
-					"mention": "Read and approved",
-				    "mention2": "Signed by John Doe"
-				}
-			]
-		}
-	]
+        {
+            "firstname": "John",
+            "lastname": "Doe",
+            "email": "john.doe@yousign.fr",
+            "phone": "+33612345678",
+            "fileObjects": [
+                {
+                    "file": "/files/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+                    "page": 2,
+                    "position": "230,499,464,589",
+                    "mention": "Read and approved",
+                    "mention2": "Signed by John Doe"
+                }
+            ]
+        }
+    ]
          */
         $conf = array();
 
