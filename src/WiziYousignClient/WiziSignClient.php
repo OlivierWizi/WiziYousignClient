@@ -451,6 +451,10 @@ class WiziSignClient
             return "cURL Error #:" . $err;
         } else {
             $rtab = json_decode($response,true);
+            if(array_key_exists('violations',$rtab)){
+                throw new \Exception($response);
+
+            }
             $this->member = $rtab['id'];
             return $response;
         }
