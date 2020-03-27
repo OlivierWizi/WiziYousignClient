@@ -177,8 +177,8 @@ class WiziSignClient
         $data = file_get_contents($filepath);
         $b64Doc = base64_encode($data);
 
-        $names = explode('/', $test);
-        $filename = $names[count($test2) - 1];
+        $names = explode('/', $filepath);
+        $filename = $names[count($names) - 1];
         
         $post = array(
             'name' => $filename,
