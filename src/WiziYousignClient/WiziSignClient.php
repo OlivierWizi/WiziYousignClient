@@ -177,8 +177,11 @@ class WiziSignClient
         $data = file_get_contents($filepath);
         $b64Doc = base64_encode($data);
 
+        $names = explode('/', $filepath);
+        $filename = $names[count($names) - 1];
+        
         $post = array(
-            'name' => 'test.pdf',
+            'name' => $filename,
             'content' => $b64Doc
         );
         $p = json_encode($post);
