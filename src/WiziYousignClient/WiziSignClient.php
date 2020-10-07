@@ -109,7 +109,7 @@ class WiziSignClient
     /**
      * @param string $method
      * @param string $action
-     * @param array|string|null $post
+     * @param array|string|null $post Data to send with request
      * @return array|string Response of call
      *
      * @throws CurlException
@@ -157,7 +157,7 @@ class WiziSignClient
     }
 
     /**
-     * @param WiziSignFile|string $file File or filename
+     * @param WiziSignFile|string $file File or filepath
      * @return $this
      *
      * @throws CurlException
@@ -251,7 +251,7 @@ class WiziSignClient
     }
 
     /**
-     * @param WiziSignFile|string $file File or filename
+     * @param WiziSignFile|string $file File or filepath
      * @return array|string
      * @throws CurlException
      */
