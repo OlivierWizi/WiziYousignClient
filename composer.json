@@ -1,5 +1,5 @@
 {
-    "name": "wizi/wizi-yousign-client",
+    "name": "aureolebigben/wizi-yousign-client",
     "description": "Client yousign pour la nouvelle version de l'API de signature de documents yousign",
     "type": "library",
     "authors": [
