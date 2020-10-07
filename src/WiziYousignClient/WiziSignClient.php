@@ -4,7 +4,6 @@
 namespace WiziYousignClient;
 
 
-use Exception;
 use Exceptions\CurlException;
 use Exceptions\ViolationsException;
 
@@ -328,12 +327,12 @@ class WiziSignClient
      * @param $position
      * @param $page
      * @param $mention
-     * @param $mention2
-     * @param $reason
+     * @param null|string $mention2
+     * @param null|string $reason
      * @return array|string
      * @throws CurlException
      */
-    public function AdvancedProcedureFileObject($position, $page, $mention, $mention2, $reason)
+    public function AdvancedProcedureFileObject($position, $page, $mention, $mention2 = null, $reason = null)
     {
         /*
             {
@@ -352,10 +351,16 @@ class WiziSignClient
             "member" => $this->member,
             "position" => $position,
             "page" => $page,
-            "mention" => $mention,
-            "mention2" => $mention2,
-            "reason" => $reason
+            "mention" => $mention
         );
+
+        if (!is_null($mention2)) {
+            $parameter["mention2"] = $mention2;
+        }
+
+        if (!is_null($reason)) {
+            $parameter["reason"] = $reason;
+        }
 
         $response = $this->api_request('POST', 'file_objects', $parameter);
         $this->fileobject = $response['id'];
