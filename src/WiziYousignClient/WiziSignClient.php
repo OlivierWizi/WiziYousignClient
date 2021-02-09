@@ -405,7 +405,7 @@ class WiziSignClient
      * @param $phone
      * @return bool|string
      */
-    public function AdvancedProcedureAddMember($firstname,$lastname,$email,$phone){
+    public function AdvancedProcedureAddMember($firstname,$lastname,$email,$phone, $mode = 'sms'){
 
         /*
              {
@@ -422,7 +422,9 @@ class WiziSignClient
             "lastname" => $lastname,
             "email" => $email,
             "phone" => $phone,
-            "procedure" => $this->idAdvProc
+            "procedure" => $this->idAdvProc,
+            "operationLevel" => "custom",
+            'operationCustomModes'  => array( $mode )
         );
 
         $curl = curl_init();
