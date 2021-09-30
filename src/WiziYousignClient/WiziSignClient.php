@@ -177,11 +177,8 @@ class WiziSignClient
         $data = file_get_contents($filepath);
         $b64Doc = base64_encode($data);
 
-        $names = explode('/', $filepath);
-        $filename = $names[count($names) - 1];
-        
         $post = array(
-            'name' => $filename,
+            'name' => 'test.pdf',
             'content' => $b64Doc
         );
         $p = json_encode($post);
@@ -403,9 +400,10 @@ class WiziSignClient
      * @param $lastname
      * @param $email
      * @param $phone
+     * @param $otp Receive Security Code by email or sms
      * @return bool|string
      */
-    public function AdvancedProcedureAddMember($firstname,$lastname,$email,$phone){
+    public function AdvancedProcedureAddMember($firstname,$lastname,$email,$phone, $otp="email"){
 
         /*
              {
@@ -422,7 +420,8 @@ class WiziSignClient
             "lastname" => $lastname,
             "email" => $email,
             "phone" => $phone,
-            "procedure" => $this->idAdvProc
+            "procedure" => $this->idAdvProc,
+            "operationCustomModes" => [ $otp ]
         );
 
         $curl = curl_init();
@@ -454,10 +453,6 @@ class WiziSignClient
             return "cURL Error #:" . $err;
         } else {
             $rtab = json_decode($response,true);
-            if(array_key_exists('violations',$rtab)){
-                throw new \Exception($response);
-
-            }
             $this->member = $rtab['id'];
             return $response;
         }
