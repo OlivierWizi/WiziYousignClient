@@ -1,7 +1,12 @@
 # WiziYousignClient
- Client yousign pour la nouvelle version de l'API de signature de documents yousign
+ Client yousign pour la nouvelle version de l'API V2 (deprecated) de signature de documents yousign
+
+ # pour le sdk de Yousign V3 c'est ici : 
+
+ https://github.com/oliviernival/yousign-client-api-V3-2024
  
- Utilisation : 
+ # Utilisation Yousign V2 (deprecated) : 
+ ne sera plus utilisable en decembre 2024
  
  <h1>Procédure basique</h1>
  
