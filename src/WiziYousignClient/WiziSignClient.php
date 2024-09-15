@@ -4,11 +4,13 @@
 namespace WiziYousignClient;
 
 
+use Exceptions\CurlException;
+use Exceptions\ViolationsException;
+
 class WiziSignClient
 {
     private $apikey;
     private $apiBaseUrl;
-    private $apiBaseUrlWslash;
     private $idfile;
     private $idAdvProc;
     private $member;
@@ -19,15 +21,13 @@ class WiziSignClient
      * @param $apikey
      * @param $mode
      */
-    public function __construct($apikey,$mode)
+    public function __construct($apikey, $mode)
     {
         $this->setApikey($apikey);
-        if($mode == 'prod'){
+        if ($mode === 'prod') {
             $this->apiBaseUrl = 'https://api.yousign.com/';
-            $this->apiBaseUrlWslash = 'https://api.yousign.com';
-        }else{
+        } else {
             $this->apiBaseUrl = 'https://staging-api.yousign.com/';
-            $this->apiBaseUrlWslash = 'https://staging-api.yousign.com';
         }
     }
 
@@ -42,42 +42,48 @@ class WiziSignClient
     /**
      * @param $apikey
      */
-    public function setApikey($apikey){
+    public function setApikey($apikey)
+    {
         $this->apikey = $apikey;
     }
 
     /**
      * @return mixed
      */
-    public function getApikey(){
+    public function getApikey()
+    {
         return $this->apikey;
     }
 
     /**
-     * @param $apikey
+     * @param $member
      */
-    public function setMember($member){
+    public function setMember($member)
+    {
         $this->member = $member;
     }
 
     /**
      * @return mixed
      */
-    public function getMember(){
+    public function getMember()
+    {
         return $this->member;
     }
 
     /**
      * @return mixed
      */
-    public function getIdfile(){
+    public function getIdfile()
+    {
         return $this->idfile;
     }
 
     /**
      * @param $idfile
      */
-    public function setIdfile($idfile){
+    public function setIdfile($idfile)
+    {
         $this->idfile = $idfile;
     }
 
@@ -85,61 +91,45 @@ class WiziSignClient
      * permet de recup le fichier signé sur yousign
      * @param $fileid
      * @param $mode
-     * @return bool|string
+     * @return array|string
+     * @throws CurlException
      */
-    public function downloadSignedFile($fileid,$mode){
-        $curl = curl_init();
-        if($mode == 'binary'){
-            $urlstr =  $this->apiBaseUrlWslash.$fileid."/download?alt=media";
-        }else{
-            $urlstr =  $this->apiBaseUrlWslash.$fileid."/download";
+    public function downloadSignedFile($fileid, $mode)
+    {
+
+        $urlstr = $fileid . "/download";
+        if ($mode === 'binary') {
+            $urlstr .="?alt=media";
         }
 
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $urlstr,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "GET",
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            return $response;
-        }
+        return $this->api_request('GET', $urlstr);
     }
 
     /**
-     * @param $post
-     * @param $action
-     * @param $method
-     * @return mixed|string
+     * @param string $method
+     * @param string $action
+     * @param array|string|null $post Data to send with request
+     * @return array|string Response of call
+     *
+     * @throws CurlException
      */
-    public function api_request( $post,$action,$method) {
-
+    public function api_request($method, $action = '', $post = null)
+    {
         header('Content-Type: application/json'); // Specify the type of data
-        $ch = curl_init($this->apiBaseUrl.$action); // Initialise cURL
-        $post = json_encode($post); // Encode the data array into a JSON string
-        $authorization = "Authorization: Bearer ".$this->getApikey(); // Prepare the authorisation token
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization )); // Inject the token into the header
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        if($method == 'POST'){
-            curl_setopt($ch, CURLOPT_POST, 1); // Specify the request method as POST
+        if (strpos($action, '/') === 0) {
+            $action = substr($action, 1);
+        }
+
+        $ch = curl_init($this->apiBaseUrl . $action); // Initialise cURL
+        $authorization = "Authorization: Bearer " . $this->getApikey(); // Prepare the authorisation token
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', $authorization)); // Inject the token into the header
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        if (($method === 'POST' || $method === 'PUT') && !is_null($post)) {
+            if (!is_string($post)) {
+                $post = json_encode($post); // Encode the data array into a JSON string
+            }
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post); // Set the posted fields
         }
 
@@ -149,122 +139,76 @@ class WiziSignClient
         curl_close($ch); // Close the cURL connection
 
         if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            return json_decode($result);
+            throw new CurlException("cURL Error #:" . $err);
         }
 
-        // Return the received data
-
+        return json_decode($result, true);
     }
 
     /**
-     * @return mixed|string
+     * @return array|string
+     *
+     * @throws CurlException
      */
-    public function getUsers(){
-        $users = $this->api_request(array(),'users','GET');
-
-        return $users;
+    public function getUsers()
+    {
+        return $this->api_request('GET', 'users');
     }
 
     /**
-     * @param $filepath
+     * @param WiziSignFile|string $file File or filepath
      * @return $this
+     *
+     * @throws CurlException
      */
-    public function newProcedure($filepath){
-        $curl = curl_init();
+    public function newProcedure($file)
+    {
+        if (is_string($file)) {
+            $file = new WiziSignFile($file);
+        }
 
-        $data = file_get_contents($filepath);
-        $b64Doc = base64_encode($data);
-
-        $names = explode('/', $filepath);
-        $filename = $names[count($names) - 1];
-        
         $post = array(
-            'name' => $filename,
-            'content' => $b64Doc
+            'name' => $file->getFilename(),
+            'content' => $file->getBase64()
         );
-        $p = json_encode($post);
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."files",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS =>$p,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
+        $response = $this->api_request('POST', 'files', $post);
 
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
+        $this->idfile = $response['id'];
 
-        curl_close($curl);
-
-        $rtab = json_decode($response,true);
-
-        $this->idfile = $rtab['id'];
         return $this;
-
     }
 
     /**
      * @param $members
      * @param $titresignature
      * @param $description
-     * @return bool|string
+     * @return array|string
+     *
+     * @throws CurlException
      */
-    public function addMembersOnProcedure($members,$titresignature,$description){
-        $post2 = array(
+    public function addMembersOnProcedure($members, $titresignature, $description)
+    {
+        $post = array(
             'name' => $titresignature,
             'description' => $description,
-            'members'=> $members
+            'members' => $members
         );
 
-        $p2 = json_encode($post2,true);
-
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."procedures",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $p2,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        return $response;
+        return $this->api_request('POST', 'procedures', $post);
     }
 
     /**
      * @param $parameters
-     * @param bool $notifmail
      * @param bool $webhook
      * @param string $webhookMethod
      * @param string $webhookUrl
      * @param string $webhookHeader
-     * @return bool|string
+     * @return array|string
+     * @throws CurlException
      */
-    public function AdvancedProcedureCreate($parameters,$webhook = false,$webhookMethod = '',$webhookUrl = '',$webhookHeader = ''){
+    public function AdvancedProcedureCreate($parameters, $webhook = false, $webhookMethod = '', $webhookUrl = '', $webhookHeader = '')
+    {
         /*
          *
             {
@@ -275,7 +219,7 @@ class WiziSignClient
          */
         $conf = array();
 
-        if($webhook == true){
+        if ($webhook) {
             $conf["webhook"] = array(
                 "member.finished" => array(
                     array(
@@ -299,49 +243,19 @@ class WiziSignClient
             $parameters['config'] = $conf;
         }
 
-        $curl = curl_init();
+        $response = $this->api_request('POST', 'procedures', $parameters);
+        $this->idAdvProc = $response['id'];
 
-        $params = json_encode($parameters,true);
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."procedures",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $params,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            $rtab = json_decode($response,true);
-
-
-            $this->idAdvProc = $rtab['id'];
-            return $response;
-        }
+        return $response;
     }
 
     /**
-     * @param $filepath
-     * @param $namefile
-     * @return bool|string
+     * @param WiziSignFile|string $file File or filepath
+     * @return array|string
+     * @throws CurlException
      */
-    public function AdvancedProcedureAddFile($filepathOrFileContent,$namefile,$filecontent = false){
-
+    public function AdvancedProcedureAddFile($file)
+    {
         /*
          {
             "name": "Name of my signable file.pdf",
@@ -350,52 +264,20 @@ class WiziSignClient
 }
          */
 
-        if($filecontent == false){
-            $data = file_get_contents($filepathOrFileContent);
-            $b64Doc = base64_encode($data);
-        }else{
-            $b64Doc = base64_encode($filepathOrFileContent);
+        if (is_string($file)) {
+            $file = new WiziSignFile($file);
         }
 
-
         $parameters = array(
-            'name' => $namefile,
-            'content' => $b64Doc,
+            'name' => $file->getFilename(),
+            'content' => $file->getBase64(),
             'procedure' => $this->idAdvProc
         );
 
+        $response = $this->api_request('POST', 'files', $parameters);
+        $this->idfile = $response['id'];
 
-        $curl = curl_init();
-        $params = json_encode($parameters,true);
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."files",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $params,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            $rtab = json_decode($response,true);
-            $this->idfile = $rtab['id'];
-            return $response;
-        }
+        return $response;
     }
 
     /**
@@ -403,9 +285,13 @@ class WiziSignClient
      * @param $lastname
      * @param $email
      * @param $phone
-     * @return bool|string
+     * @return array|string
+     *
+     * @throws CurlException
+     * @throws ViolationsException
      */
-    public function AdvancedProcedureAddMember($firstname,$lastname,$email,$phone){
+    public function AdvancedProcedureAddMember($firstname, $lastname, $email, $phone)
+    {
 
         /*
              {
@@ -425,53 +311,29 @@ class WiziSignClient
             "procedure" => $this->idAdvProc
         );
 
-        $curl = curl_init();
+        $response = $this->api_request('POST', 'members', $member);
 
-        $param = json_encode($member,true);
+        if (array_key_exists('violations', $response)) {
+            throw new ViolationsException(json_encode($response));
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."members",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS =>$param,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            $rtab = json_decode($response,true);
-            if(array_key_exists('violations',$rtab)){
-                throw new \Exception($response);
-
-            }
-            $this->member = $rtab['id'];
-            return $response;
         }
+
+        $this->member = $response['id'];
+
+        return $response;
     }
 
     /**
      * @param $position
      * @param $page
      * @param $mention
-     * @param $mention2
-     * @param $reason
-     * @return bool|string
+     * @param null|string $mention2
+     * @param null|string $reason
+     * @return array|string
+     * @throws CurlException
      */
-    public function AdvancedProcedureFileObject($position,$page,$mention,$mention2,$reason){
+    public function AdvancedProcedureFileObject($position, $page, $mention, $mention2 = null, $reason = null)
+    {
         /*
             {
                 "file": "/files/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
@@ -485,88 +347,44 @@ class WiziSignClient
 
          */
         $parameter = array(
-            "file"=> $this->idfile,
-            "member"=> $this->member,
-            "position"=> $position,
-            "page"=> $page,
-            "mention"=> $mention,
-            "mention2"=> $mention2,
-            "reason"=> $reason
+            "file" => $this->idfile,
+            "member" => $this->member,
+            "position" => $position,
+            "page" => $page,
+            "mention" => $mention
         );
 
-        $param = json_encode($parameter,true);
-
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."file_objects",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $param,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            echo "cURL Error #:" . $err;
-        } else {
-            $rtab = json_decode($response,true);
-            $this->fileobject = $rtab['id'];
-            return $response;
+        if (!is_null($mention2)) {
+            $parameter["mention2"] = $mention2;
         }
 
+        if (!is_null($reason)) {
+            $parameter["reason"] = $reason;
+        }
+
+        $response = $this->api_request('POST', 'file_objects', $parameter);
+        $this->fileobject = $response['id'];
+
+        return $response;
     }
 
     /**
-     * @return bool|string
+     * @return array|string
+     * @throws CurlException
      */
-    public function AdvancedProcedurePut(){
+    public function AdvancedProcedurePut()
+    {
         /*
             {
                "start": true
             }
          */
 
-        $curl = curl_init();
+        $params = array(
+            "start" => true
+        );
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrlWslash."".$this->idAdvProc,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "PUT",
-            CURLOPT_POSTFIELDS =>"{\n   \"start\": true\n}",
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            return $response;
-        }
+        return $this->api_request('PUT', $this->idAdvProc, $params);
 
     }
 
@@ -577,9 +395,13 @@ class WiziSignClient
      * @param $mailsubject
      * @param $mailMessage
      * @param array $arrayTo
-     * @return bool|string
+     *
+     * @return array|string
+     *
+     * @throws CurlException
      */
-    public function addMemberWhithMailNotif($members = array(),$ProcName = '',$ProcDesc = '', $mailsubject, $mailMessage, $arrayTo = array("@creator", "@members") ){
+    public function addMemberWhithMailNotif($mailsubject, $mailMessage, $members = array(), $ProcName = '', $ProcDesc = '', $arrayTo = array("@creator", "@members"))
+    {
         $curl = curl_init();
 
         /*
@@ -620,9 +442,7 @@ class WiziSignClient
                         "to" => $arrayTo
                     )
                 )
-            )
-
-        ;
+            );
 
         $body = array(
             "name" => $ProcName,
@@ -632,42 +452,17 @@ class WiziSignClient
 
         );
 
-        $param = json_encode($body,true);
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."procedures",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS =>$param,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            return $response;
-        }
+        return $this->api_request('POST', 'procedures', $body);
     }
 
     /**
-     * @param $filepath
-     * @param $namefile
-     * @return bool|string
+     * @param $file
+     * @return array|string
+     *
+     * @throws CurlException
      */
-    public function AdvancedProcedureAddAttachement($filepath,$namefile){
+    public function AdvancedProcedureAddAttachement($file)
+    {
         /*
             {
                 "name": "Name of my attachment.pdf",
@@ -677,46 +472,18 @@ class WiziSignClient
             }
          */
 
-        $data = file_get_contents($filepath);
-        $b64Doc = base64_encode($data);
+        if (is_string($file)) {
+            $file = new WiziSignFile($file);
+        }
 
         $parameters = array(
-            'name' => $namefile,
-            'content' => $b64Doc,
+            'name' => $file->getFilename(),
+            'content' => $file->getBase64(),
             'procedure' => $this->idAdvProc,
-            "type"=> "attachment"
+            "type" => "attachment"
         );
 
-        $param = json_encode($parameters,true);
-
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $this->apiBaseUrl."files",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $param,
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$this->getApikey(),
-                "Content-Type: application/json"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-        curl_close($curl);
-
-        if ($err) {
-            return "cURL Error #:" . $err;
-        } else {
-            return $response;
-        }
+        return $this->api_request('POST', 'files', $parameters);
     }
 
 
